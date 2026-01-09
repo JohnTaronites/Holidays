@@ -1,13 +1,16 @@
-const CACHE_NAME = "absence-tracker-v2";
+const CACHE_NAME = "absence-tracker-v3";
 const ASSETS = [
   "./",
   "./index.html",
+  "./styles.css",
+  "./app.js",
   "./manifest.webmanifest",
   "./service-worker.js",
   "./icon-192.png",
   "./icon-512.png",
   "./apple-touch-icon.png"
 ];
+
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

@@ -2,9 +2,38 @@
 (() => {
   const STORAGE_KEY = "absence_tracker_v1";
   const STATE_VERSION = 1;
-
+  const SETTINGS_KEY = "absence_tracker_settings_v1";
+  const DEFAULT_HOLIDAYS_LIMIT = 25;
   const state = loadState();
 
+  function loadSettings(){
+  try{
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if(!raw) return { holidaysLimit: DEFAULT_HOLIDAYS_LIMIT };
+    const parsed = JSON.parse(raw);
+    const limit = Number(parsed.holidaysLimit);
+    return {
+      holidaysLimit: Number.isFinite(limit) && limit >= 0 ? limit : DEFAULT_HOLIDAYS_LIMIT
+    };
+  }catch{
+    return { holidaysLimit: DEFAULT_HOLIDAYS_LIMIT };
+  }
+}
+
+function saveSettings(){
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+}
+
+// pozwala na .5 kroki, ale blokuje NaN/ujemne
+function normalizeLimit(v){
+  const n = Number(v);
+  if(!Number.isFinite(n) || n < 0) return null;
+  // zaokrąglamy do 0.5 (żeby pasowało do Half day)
+  return Math.round(n * 2) / 2;
+}
+
+const settings = loadSettings();
+  
   function loadState(){
     try{
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -227,7 +256,6 @@
   }
 
   /* HOLIDAYS */
-  const HOLIDAYS_LIMIT = 25;
 
   const hDate = document.getElementById("h-date");
   const hType = document.getElementById("h-type");

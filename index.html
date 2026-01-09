@@ -105,10 +105,18 @@
       </div>
 
       <div class="summary">
-        <div class="pill">
+       <div class="pill pill-edit">
+        <div class="pill-left">
           <strong>Limit roczny</strong>
-          <span class="accent" id="h-limit">25</span>
+        <div class="pill-sub">Możesz zmienić (np. 26)</div>
         </div>
+
+  <div class="pill-right">
+    <input id="h-limit-input" class="pill-input" type="number" min="0" step="0.5" inputmode="decimal" />
+    <span class="accent pill-unit">dni</span>
+  </div>
+</div>
+
         <div class="pill">
           <strong>Wzięte dni</strong>
           <span id="h-taken">0</span>

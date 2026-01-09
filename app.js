@@ -2,42 +2,43 @@
 (() => {
   const STORAGE_KEY = "absence_tracker_v1";
   const STATE_VERSION = 1;
+
+  // Settings (Holidays limit)
   const SETTINGS_KEY = "absence_tracker_settings_v1";
   const DEFAULT_HOLIDAYS_LIMIT = 25;
+
+  function loadSettings() {
+    try {
+      const raw = localStorage.getItem(SETTINGS_KEY);
+      if (!raw) return { holidaysLimit: DEFAULT_HOLIDAYS_LIMIT };
+      const parsed = JSON.parse(raw);
+      const limit = Number(parsed.holidaysLimit);
+      return {
+        holidaysLimit: Number.isFinite(limit) && limit >= 0 ? limit : DEFAULT_HOLIDAYS_LIMIT
+      };
+    } catch {
+      return { holidaysLimit: DEFAULT_HOLIDAYS_LIMIT };
+    }
+  }
+
+  function saveSettings() {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  }
+
+  // Allows 0.5 steps, blocks NaN/negative
+  function normalizeLimit(v) {
+    const n = Number(v);
+    if (!Number.isFinite(n) || n < 0) return null;
+    return Math.round(n * 2) / 2; // round to 0.5
+  }
+
+  const settings = loadSettings();
   const state = loadState();
 
-  function loadSettings(){
-  try{
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    if(!raw) return { holidaysLimit: DEFAULT_HOLIDAYS_LIMIT };
-    const parsed = JSON.parse(raw);
-    const limit = Number(parsed.holidaysLimit);
-    return {
-      holidaysLimit: Number.isFinite(limit) && limit >= 0 ? limit : DEFAULT_HOLIDAYS_LIMIT
-    };
-  }catch{
-    return { holidaysLimit: DEFAULT_HOLIDAYS_LIMIT };
-  }
-}
-
-function saveSettings(){
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-}
-
-// pozwala na .5 kroki, ale blokuje NaN/ujemne
-function normalizeLimit(v){
-  const n = Number(v);
-  if(!Number.isFinite(n) || n < 0) return null;
-  // zaokrąglamy do 0.5 (żeby pasowało do Half day)
-  return Math.round(n * 2) / 2;
-}
-
-const settings = loadSettings();
-  
-  function loadState(){
-    try{
+  function loadState() {
+    try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if(!raw) return { version: STATE_VERSION, holidays: [], sickness: [], childcare: [] };
+      if (!raw) return { version: STATE_VERSION, holidays: [], sickness: [], childcare: [] };
       const parsed = JSON.parse(raw);
       return {
         version: Number(parsed.version || STATE_VERSION),
@@ -45,65 +46,65 @@ const settings = loadSettings();
         sickness: Array.isArray(parsed.sickness) ? parsed.sickness : [],
         childcare: Array.isArray(parsed.childcare) ? parsed.childcare : []
       };
-    }catch(e){
+    } catch (e) {
       return { version: STATE_VERSION, holidays: [], sickness: [], childcare: [] };
     }
   }
 
-  function saveState(){
+  function saveState() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }
 
-  function nextId(list){
+  function nextId(list) {
     const max = list.reduce((m, x) => Math.max(m, Number(x.id || 0)), 0);
     return max + 1;
   }
 
-  function safeNumber(x){
+  function safeNumber(x) {
     const n = Number(x);
     return Number.isFinite(n) ? n : 0;
   }
 
-  function sumDays(list){
+  function sumDays(list) {
     return list.reduce((acc, item) => acc + safeNumber(item.dayValue), 0);
   }
 
-  function escapeHtml(str){
+  function escapeHtml(str) {
     return String(str)
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#039;");
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
   }
 
-  function fmtDateWithWeekday(iso){
-    if(!iso) return "—";
-    const [y,m,d] = iso.split("-");
+  function fmtDateWithWeekday(iso) {
+    if (!iso) return "—";
+    const [y, m, d] = iso.split("-");
     const dateObj = new Date(Number(y), Number(m) - 1, Number(d));
     const weekday = new Intl.DateTimeFormat("en-GB", { weekday: "long" }).format(dateObj);
     return `${d}.${m}.${y} • ${weekday}`;
   }
 
-  function isoFromDate(d){
+  function isoFromDate(d) {
     const y = d.getFullYear();
-    const m = String(d.getMonth()+1).padStart(2,"0");
-    const day = String(d.getDate()).padStart(2,"0");
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
     return `${y}-${m}-${day}`;
   }
 
-  function enumerateDatesInclusive(fromIso, toIso){
-    const [fy,fm,fd] = fromIso.split("-").map(Number);
-    const [ty,tm,td] = toIso.split("-").map(Number);
-    const start = new Date(fy, fm-1, fd);
-    const end = new Date(ty, tm-1, td);
+  function enumerateDatesInclusive(fromIso, toIso) {
+    const [fy, fm, fd] = fromIso.split("-").map(Number);
+    const [ty, tm, td] = toIso.split("-").map(Number);
+    const start = new Date(fy, fm - 1, fd);
+    const end = new Date(ty, tm - 1, td);
 
     if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return [];
     if (end < start) return [];
 
     const out = [];
     let cur = new Date(start);
-    while(cur <= end){
+    while (cur <= end) {
       out.push(isoFromDate(cur));
       cur.setDate(cur.getDate() + 1);
     }
@@ -118,15 +119,15 @@ const settings = loadSettings();
     childcare: document.getElementById("panel-childcare")
   };
 
-  tabs.forEach(btn => btn.addEventListener("click", () => activateTab(btn.dataset.tab)));
+  tabs.forEach((btn) => btn.addEventListener("click", () => activateTab(btn.dataset.tab)));
 
-  function activateTab(key){
-    tabs.forEach(t => {
-      const active = (t.dataset.tab === key);
+  function activateTab(key) {
+    tabs.forEach((t) => {
+      const active = t.dataset.tab === key;
       t.classList.toggle("active", active);
       t.setAttribute("aria-selected", active ? "true" : "false");
     });
-    Object.keys(panels).forEach(k => panels[k].classList.toggle("hidden", k !== key));
+    Object.keys(panels).forEach((k) => panels[k].classList.toggle("hidden", k !== key));
   }
 
   /* Export / Import */
@@ -142,7 +143,7 @@ const settings = loadSettings();
 
     const a = document.createElement("a");
     const ts = new Date();
-    const stamp = `${ts.getFullYear()}-${String(ts.getMonth()+1).padStart(2,"0")}-${String(ts.getDate()).padStart(2,"0")}`;
+    const stamp = `${ts.getFullYear()}-${String(ts.getMonth() + 1).padStart(2, "0")}-${String(ts.getDate()).padStart(2, "0")}`;
     a.href = url;
     a.download = `absence-backup-${stamp}.json`;
     document.body.appendChild(a);
@@ -156,9 +157,9 @@ const settings = loadSettings();
   importFile.addEventListener("change", async () => {
     const file = importFile.files && importFile.files[0];
     importFile.value = "";
-    if(!file) return;
+    if (!file) return;
 
-    try{
+    try {
       const text = await file.text();
       const parsed = JSON.parse(text);
 
@@ -181,13 +182,13 @@ const settings = loadSettings();
       saveState();
       renderAll();
       alert("Import OK. Dane zostały wczytane.");
-    }catch(e){
+    } catch (e) {
       alert("Nie udało się zaimportować pliku. Sprawdź, czy to poprawny JSON z eksportu.");
     }
   });
 
   resetAllBtn.addEventListener("click", () => {
-    if(!confirm("Na pewno usunąć WSZYSTKIE dane (Holidays, Sickness, Child care)?")) return;
+    if (!confirm("Na pewno usunąć WSZYSTKIE dane (Holidays, Sickness, Child care)?")) return;
     state.holidays = [];
     state.sickness = [];
     state.childcare = [];
@@ -195,11 +196,11 @@ const settings = loadSettings();
     renderAll();
   });
 
-  function normalizeList(list){
+  function normalizeList(list) {
     const out = [];
-    for(const item of list){
-      if(!item || typeof item !== "object") continue;
-      if(!item.date) continue;
+    for (const item of list) {
+      if (!item || typeof item !== "object") continue;
+      if (!item.date) continue;
 
       const dayValue = safeNumber(item.dayValue);
       out.push({
@@ -214,9 +215,10 @@ const settings = loadSettings();
         reason: item.reason ? String(item.reason) : ""
       });
     }
-    let max = out.reduce((m,x)=>Math.max(m, Number(x.id||0)), 0);
-    for(const x of out){
-      if(!x.id || x.id <= 0){
+
+    let max = out.reduce((m, x) => Math.max(m, Number(x.id || 0)), 0);
+    for (const x of out) {
+      if (!x.id || x.id <= 0) {
         max += 1;
         x.id = max;
       }
@@ -224,39 +226,40 @@ const settings = loadSettings();
     return out;
   }
 
-  function addSingle(listKey, entry){
+  function addSingle(listKey, entry) {
     const list = state[listKey];
-    if(list.some(x => x.date === entry.date)){
-      return { ok:false, msg:`Ten dzień (${entry.date}) już istnieje w tej zakładce.` };
+    if (list.some((x) => x.date === entry.date)) {
+      return { ok: false, msg: `Ten dzień (${entry.date}) już istnieje w tej zakładce.` };
     }
     list.push({ id: nextId(list), ...entry });
-    return { ok:true };
+    return { ok: true };
   }
 
-  function addRange(listKey, fromIso, toIso, entryBuilder){
+  function addRange(listKey, fromIso, toIso, entryBuilder) {
     const dates = enumerateDatesInclusive(fromIso, toIso);
-    if(dates.length === 0){
-      return { ok:false, msg:"Niepoprawny zakres. Upewnij się, że 'od' <= 'do'." };
+    if (dates.length === 0) {
+      return { ok: false, msg: "Niepoprawny zakres. Upewnij się, że 'od' <= 'do'." };
     }
 
     const list = state[listKey];
-    const existing = new Set(list.map(x => x.date));
-    const toAdd = dates.filter(d => !existing.has(d));
+    const existing = new Set(list.map((x) => x.date));
+    const toAdd = dates.filter((d) => !existing.has(d));
 
-    if(toAdd.length === 0){
-      return { ok:false, msg:"Wszystkie dni z tego zakresu już istnieją w tej zakładce." };
+    if (toAdd.length === 0) {
+      return { ok: false, msg: "Wszystkie dni z tego zakresu już istnieją w tej zakładce." };
     }
 
-    for(const d of toAdd){
+    for (const d of toAdd) {
       const entry = entryBuilder(d);
       list.push({ id: nextId(list), ...entry });
     }
 
-    return { ok:true, added: toAdd.length, skipped: dates.length - toAdd.length };
+    return { ok: true, added: toAdd.length, skipped: dates.length - toAdd.length };
   }
 
-  /* HOLIDAYS */
-
+  /**********************
+   * HOLIDAYS
+   **********************/
   const hDate = document.getElementById("h-date");
   const hType = document.getElementById("h-type");
   const hNote = document.getElementById("h-note");
@@ -269,22 +272,41 @@ const settings = loadSettings();
   const hRangeType = document.getElementById("h-range-type");
   const hAddRange = document.getElementById("h-add-range");
 
-  const hLimitEl = document.getElementById("h-limit");
+  const hLimitInput = document.getElementById("h-limit-input");
   const hTakenEl = document.getElementById("h-taken");
   const hLeftEl = document.getElementById("h-left");
 
-  hLimitEl.textContent = String(HOLIDAYS_LIMIT);
+  // Init limit input
+  if (hLimitInput) {
+    hLimitInput.value = String(settings.holidaysLimit);
+
+    hLimitInput.addEventListener("change", () => {
+      const normalized = normalizeLimit(hLimitInput.value);
+      if (normalized === null) {
+        alert("Podaj poprawną liczbę dni (>= 0).");
+        hLimitInput.value = String(settings.holidaysLimit);
+        return;
+      }
+
+      settings.holidaysLimit = normalized;
+      saveSettings();
+      renderHolidays(); // recalc immediately
+    });
+  }
 
   hAdd.addEventListener("click", () => {
     const date = hDate.value;
     const dayValue = Number(hType.value);
     const note = (hNote.value || "").trim();
 
-    if(!date){ alert("Wybierz datę."); return; }
+    if (!date) {
+      alert("Wybierz datę.");
+      return;
+    }
 
     const taken = sumDays(state.holidays);
-    if (HOLIDAYS_LIMIT - (taken + dayValue) < 0){
-      alert("Przekraczasz limit Holidays (25 dni).");
+    if (settings.holidaysLimit - (taken + dayValue) < 0) {
+      alert(`Przekraczasz limit Holidays (${settings.holidaysLimit} dni).`);
       return;
     }
 
@@ -295,7 +317,10 @@ const settings = loadSettings();
       note
     });
 
-    if(!res.ok){ alert(res.msg); return; }
+    if (!res.ok) {
+      alert(res.msg);
+      return;
+    }
 
     saveState();
     renderAll();
@@ -311,18 +336,24 @@ const settings = loadSettings();
     const dayValue = Number(hRangeType.value);
     const note = (hNote.value || "").trim();
 
-    if(!fromIso || !toIso){ alert("Uzupełnij daty 'od' i 'do'."); return; }
+    if (!fromIso || !toIso) {
+      alert("Uzupełnij daty 'od' i 'do'.");
+      return;
+    }
 
     const dates = enumerateDatesInclusive(fromIso, toIso);
-    if(dates.length === 0){ alert("Niepoprawny zakres (od <= do)."); return; }
+    if (dates.length === 0) {
+      alert("Niepoprawny zakres (od <= do).");
+      return;
+    }
 
-    const existing = new Set(state.holidays.map(x => x.date));
-    const toAddCount = dates.filter(d => !existing.has(d)).length;
+    const existing = new Set(state.holidays.map((x) => x.date));
+    const toAddCount = dates.filter((d) => !existing.has(d)).length;
 
     const taken = sumDays(state.holidays);
     const wouldAdd = toAddCount * dayValue;
-    if(HOLIDAYS_LIMIT - (taken + wouldAdd) < 0){
-      alert("Zakres przekroczy limit Holidays (25 dni).");
+    if (settings.holidaysLimit - (taken + wouldAdd) < 0) {
+      alert(`Zakres przekroczy limit Holidays (${settings.holidaysLimit} dni).`);
       return;
     }
 
@@ -333,7 +364,10 @@ const settings = loadSettings();
       note
     }));
 
-    if(!res.ok){ alert(res.msg); return; }
+    if (!res.ok) {
+      alert(res.msg);
+      return;
+    }
 
     saveState();
     renderAll();
@@ -345,30 +379,33 @@ const settings = loadSettings();
   });
 
   hClear.addEventListener("click", () => {
-    if(!confirm("Na pewno wyczyścić wszystkie wpisy Holidays?")) return;
+    if (!confirm("Na pewno wyczyścić wszystkie wpisy Holidays?")) return;
     state.holidays = [];
     saveState();
     renderAll();
   });
 
-  function renderHolidays(){
+  function renderHolidays() {
+    // keep input synced (e.g., after import or refresh)
+    if (hLimitInput) hLimitInput.value = String(settings.holidaysLimit);
+
     const taken = sumDays(state.holidays);
-    const left = HOLIDAYS_LIMIT - taken;
+    const left = settings.holidaysLimit - taken;
 
     hTakenEl.textContent = String(taken % 1 === 0 ? taken.toFixed(0) : taken.toFixed(1));
     hLeftEl.textContent = String(left % 1 === 0 ? left.toFixed(0) : left.toFixed(1));
     hLeftEl.classList.toggle("bad", left <= 2);
     hLeftEl.classList.toggle("good", left > 2);
 
-    const list = [...state.holidays].sort((a,b) => (a.date || "").localeCompare(b.date || ""));
+    const list = [...state.holidays].sort((a, b) => (a.date || "").localeCompare(b.date || ""));
     hList.innerHTML = "";
 
-    if(list.length === 0){
+    if (list.length === 0) {
       hList.innerHTML = `<div class="item"><div class="item-meta">Brak wpisów. Dodaj dzień lub zakres.</div></div>`;
       return;
     }
 
-    list.forEach(item => {
+    list.forEach((item) => {
       const el = document.createElement("div");
       el.className = "item";
 
@@ -387,7 +424,7 @@ const settings = loadSettings();
       `;
 
       el.querySelector('[data-action="delete"]').addEventListener("click", () => {
-        state.holidays = state.holidays.filter(x => x.id !== item.id);
+        state.holidays = state.holidays.filter((x) => x.id !== item.id);
         saveState();
         renderAll();
       });
@@ -396,7 +433,9 @@ const settings = loadSettings();
     });
   }
 
-  /* SICKNESS */
+  /**********************
+   * SICKNESS
+   **********************/
   const sDate = document.getElementById("s-date");
   const sType = document.getElementById("s-type");
   const sCert = document.getElementById("s-cert");
@@ -418,7 +457,10 @@ const settings = loadSettings();
   sAdd.addEventListener("click", () => {
     const date = sDate.value;
     const dayValue = Number(sType.value);
-    if(!date){ alert("Wybierz datę."); return; }
+    if (!date) {
+      alert("Wybierz datę.");
+      return;
+    }
 
     const res = addSingle("sickness", {
       date,
@@ -429,7 +471,10 @@ const settings = loadSettings();
       note: (sNote.value || "").trim()
     });
 
-    if(!res.ok){ alert(res.msg); return; }
+    if (!res.ok) {
+      alert(res.msg);
+      return;
+    }
 
     saveState();
     renderAll();
@@ -446,7 +491,10 @@ const settings = loadSettings();
     const toIso = sTo.value;
     const dayValue = Number(sRangeType.value);
 
-    if(!fromIso || !toIso){ alert("Uzupełnij daty 'od' i 'do'."); return; }
+    if (!fromIso || !toIso) {
+      alert("Uzupełnij daty 'od' i 'do'.");
+      return;
+    }
 
     const cert = sCert.value;
     const contact = (sContact.value || "").trim();
@@ -461,7 +509,10 @@ const settings = loadSettings();
       note
     }));
 
-    if(!res.ok){ alert(res.msg); return; }
+    if (!res.ok) {
+      alert(res.msg);
+      return;
+    }
 
     saveState();
     renderAll();
@@ -473,27 +524,27 @@ const settings = loadSettings();
   });
 
   sClear.addEventListener("click", () => {
-    if(!confirm("Na pewno wyczyścić wszystkie wpisy Sickness?")) return;
+    if (!confirm("Na pewno wyczyścić wszystkie wpisy Sickness?")) return;
     state.sickness = [];
     saveState();
     renderAll();
   });
 
-  function renderSickness(){
+  function renderSickness() {
     const total = sumDays(state.sickness);
-    const list = [...state.sickness].sort((a,b) => (a.date || "").localeCompare(b.date || ""));
+    const list = [...state.sickness].sort((a, b) => (a.date || "").localeCompare(b.date || ""));
 
     sCountEl.textContent = String(list.length);
     sTotalEl.textContent = String(total % 1 === 0 ? total.toFixed(0) : total.toFixed(1));
     sLastEl.textContent = list.length ? fmtDateWithWeekday(list[list.length - 1].date) : "—";
 
     sList.innerHTML = "";
-    if(list.length === 0){
+    if (list.length === 0) {
       sList.innerHTML = `<div class="item"><div class="item-meta">Brak wpisów. Dodaj dzień lub zakres.</div></div>`;
       return;
     }
 
-    list.forEach(item => {
+    list.forEach((item) => {
       const el = document.createElement("div");
       el.className = "item";
       el.innerHTML = `
@@ -513,7 +564,7 @@ const settings = loadSettings();
       `;
 
       el.querySelector('[data-action="delete"]').addEventListener("click", () => {
-        state.sickness = state.sickness.filter(x => x.id !== item.id);
+        state.sickness = state.sickness.filter((x) => x.id !== item.id);
         saveState();
         renderAll();
       });
@@ -522,7 +573,9 @@ const settings = loadSettings();
     });
   }
 
-  /* CHILDCARE */
+  /**********************
+   * CHILDCARE
+   **********************/
   const cDate = document.getElementById("c-date");
   const cType = document.getElementById("c-type");
   const cChild = document.getElementById("c-child");
@@ -544,7 +597,10 @@ const settings = loadSettings();
   cAdd.addEventListener("click", () => {
     const date = cDate.value;
     const dayValue = Number(cType.value);
-    if(!date){ alert("Wybierz datę."); return; }
+    if (!date) {
+      alert("Wybierz datę.");
+      return;
+    }
 
     const res = addSingle("childcare", {
       date,
@@ -555,7 +611,10 @@ const settings = loadSettings();
       note: (cNote.value || "").trim()
     });
 
-    if(!res.ok){ alert(res.msg); return; }
+    if (!res.ok) {
+      alert(res.msg);
+      return;
+    }
 
     saveState();
     renderAll();
@@ -572,7 +631,10 @@ const settings = loadSettings();
     const toIso = cTo.value;
     const dayValue = Number(cRangeType.value);
 
-    if(!fromIso || !toIso){ alert("Uzupełnij daty 'od' i 'do'."); return; }
+    if (!fromIso || !toIso) {
+      alert("Uzupełnij daty 'od' i 'do'.");
+      return;
+    }
 
     const child = (cChild.value || "").trim();
     const reason = cReason.value;
@@ -587,7 +649,10 @@ const settings = loadSettings();
       note
     }));
 
-    if(!res.ok){ alert(res.msg); return; }
+    if (!res.ok) {
+      alert(res.msg);
+      return;
+    }
 
     saveState();
     renderAll();
@@ -599,27 +664,27 @@ const settings = loadSettings();
   });
 
   cClear.addEventListener("click", () => {
-    if(!confirm("Na pewno wyczyścić wszystkie wpisy Child care?")) return;
+    if (!confirm("Na pewno wyczyścić wszystkie wpisy Child care?")) return;
     state.childcare = [];
     saveState();
     renderAll();
   });
 
-  function renderChildcare(){
+  function renderChildcare() {
     const total = sumDays(state.childcare);
-    const list = [...state.childcare].sort((a,b) => (a.date || "").localeCompare(b.date || ""));
+    const list = [...state.childcare].sort((a, b) => (a.date || "").localeCompare(b.date || ""));
 
     cCountEl.textContent = String(list.length);
     cTotalEl.textContent = String(total % 1 === 0 ? total.toFixed(0) : total.toFixed(1));
     cLastEl.textContent = list.length ? fmtDateWithWeekday(list[list.length - 1].date) : "—";
 
     cList.innerHTML = "";
-    if(list.length === 0){
+    if (list.length === 0) {
       cList.innerHTML = `<div class="item"><div class="item-meta">Brak wpisów. Dodaj dzień lub zakres.</div></div>`;
       return;
     }
 
-    list.forEach(item => {
+    list.forEach((item) => {
       const el = document.createElement("div");
       el.className = "item";
       el.innerHTML = `
@@ -639,7 +704,7 @@ const settings = loadSettings();
       `;
 
       el.querySelector('[data-action="delete"]').addEventListener("click", () => {
-        state.childcare = state.childcare.filter(x => x.id !== item.id);
+        state.childcare = state.childcare.filter((x) => x.id !== item.id);
         saveState();
         renderAll();
       });
@@ -648,7 +713,7 @@ const settings = loadSettings();
     });
   }
 
-  function renderAll(){
+  function renderAll() {
     renderHolidays();
     renderSickness();
     renderChildcare();

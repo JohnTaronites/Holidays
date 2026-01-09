@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Absence Tracker</title>
 
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0b1220">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Absence">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
   <style>
     :root{
       --bg: #0b1220;
@@ -14,9 +22,9 @@
       --muted: rgba(255,255,255,0.70);
       --muted2: rgba(255,255,255,0.55);
       --line: rgba(255,255,255,0.14);
-      --accent: #7dd3fc;   /* jasny niebieski */
-      --danger: #fb7185;   /* róż */
-      --ok: #34d399;       /* zieleń */
+      --accent: #7dd3fc;
+      --danger: #fb7185;
+      --ok: #34d399;
       --shadow: 0 10px 30px rgba(0,0,0,0.35);
       --radius: 18px;
     }
@@ -60,12 +68,11 @@
       line-height: 1.4;
     }
 
-    /* MENU */
     .tabs{
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 10px;
-      margin: 14px 0 18px;
+      margin: 14px 0 10px;
     }
 
     .tab{
@@ -90,7 +97,6 @@
       box-shadow: 0 0 0 6px rgba(125,211,252,0.08);
     }
 
-    /* KARTY */
     .card{
       background: var(--card);
       border: 1px solid var(--line);
@@ -113,7 +119,22 @@
       line-height: 1.35;
     }
 
-    /* FORM */
+    /* Backup bar */
+    .tools{
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .tools .hint{
+      color: var(--muted2);
+      font-size: 12px;
+      line-height: 1.35;
+      flex: 1 1 240px;
+      min-width: 0;
+    }
+
     .form-grid{
       display: grid;
       grid-template-columns: 1fr;
@@ -124,6 +145,7 @@
     .field{
       display: grid;
       gap: 6px;
+      min-width: 0;
     }
     label{
       font-size: 12px;
@@ -144,10 +166,18 @@
     }
     textarea{ min-height: 86px; resize: vertical; }
 
+    /* FIX: na małym ekranie jedno pod drugim */
     .row{
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr;
       gap: 12px;
+      align-items: start;
+    }
+
+    .divider{
+      border-top: 1px solid var(--line);
+      margin: 10px 0 6px;
+      opacity: 0.9;
     }
 
     .actions{
@@ -169,6 +199,7 @@
       font-size: 12px;
       transition: transform .08s ease, filter .2s ease, border-color .2s ease;
       user-select: none;
+      white-space: nowrap;
     }
     .btn:active{ transform: scale(0.99); }
     .btn.primary{
@@ -179,8 +210,11 @@
       background: rgba(251,113,133,0.14);
       border-color: rgba(251,113,133,0.35);
     }
+    .btn.accent{
+      background: rgba(125,211,252,0.14);
+      border-color: rgba(125,211,252,0.35);
+    }
 
-    /* PODSUMOWANIA */
     .summary{
       display: grid;
       grid-template-columns: 1fr;
@@ -196,23 +230,25 @@
       justify-content: space-between;
       align-items: center;
       gap: 12px;
+      min-width: 0;
     }
     .pill strong{
       font-size: 12px;
       letter-spacing: 0.7px;
       text-transform: uppercase;
       color: var(--muted);
+      font-weight: 800;
     }
     .pill span{
       font-weight: 950;
       letter-spacing: 0.3px;
       font-size: 15px;
+      white-space: nowrap;
     }
     .pill .good{ color: var(--ok); }
     .pill .bad{ color: var(--danger); }
     .pill .accent{ color: var(--accent); }
 
-    /* LISTA */
     .list{
       margin-top: 14px;
       border-top: 1px solid var(--line);
@@ -228,12 +264,14 @@
       padding: 12px;
       display: grid;
       gap: 6px;
+      min-width: 0;
     }
     .item-top{
       display: flex;
       justify-content: space-between;
       align-items: baseline;
       gap: 10px;
+      flex-wrap: wrap;
     }
     .item-title{
       font-weight: 950;
@@ -245,6 +283,7 @@
       color: var(--muted);
       font-size: 13px;
       line-height: 1.35;
+      overflow-wrap: anywhere;
     }
     .item-badge{
       font-weight: 950;
@@ -269,9 +308,7 @@
       border-radius: 12px;
     }
 
-    /* RESPONSYWNOŚĆ */
-    @media (min-width: 740px){
-      .form-grid{ grid-template-columns: 1fr; }
+    @media (min-width: 560px){
       .row{ grid-template-columns: 1fr 1fr; }
       .summary{ grid-template-columns: 1fr 1fr 1fr; }
       .tabs{ gap: 12px; }
@@ -292,12 +329,23 @@
   <div class="container">
     <header>
       <div class="app-title">Absence Tracker</div>
-      <div class="app-subtitle">Prosty rejestr nieobecności (mobile-first). Dane zapisują się lokalnie w przeglądarce.</div>
+      <div class="app-subtitle">Dane zapisują się lokalnie. Zrób backup (Export) – na iOS system może czyścić storage przy małej ilości miejsca.</div>
 
       <div class="tabs" role="tablist" aria-label="Menu">
         <button class="tab active" data-tab="holidays" role="tab" aria-selected="true">Holidays</button>
         <button class="tab" data-tab="sickness" role="tab" aria-selected="false">Sickness</button>
         <button class="tab" data-tab="childcare" role="tab" aria-selected="false">Child care absence</button>
+      </div>
+
+      <!-- Export/Import -->
+      <div class="tools">
+        <button class="btn accent" id="export-json">Export JSON</button>
+        <button class="btn accent" id="import-json">Import JSON</button>
+        <button class="btn danger" id="reset-all">Reset ALL</button>
+        <div class="hint">
+          Export pobiera plik z danymi. Import nadpisuje aktualne dane. (Dobre jako backup na iOS.)
+        </div>
+        <input id="import-file" type="file" accept="application/json,.json" class="hidden">
       </div>
     </header>
 
@@ -305,13 +353,13 @@
     <section id="panel-holidays" class="card" role="tabpanel">
       <h2 class="section-title">Holidays</h2>
       <p class="section-subtitle">
-        Brałem Holidays w: dodaj dni z kalendarza (Full day = 1, Half day = 0.5). Wpisy mają kolejne ID.
+        Dodaj pojedynczy dzień lub zakres (od–do). Full day = 1, Half day = 0.5. Wpisy mają kolejne ID.
       </p>
 
       <div class="form-grid">
         <div class="row">
           <div class="field">
-            <label for="h-date">Data</label>
+            <label for="h-date">Data (pojedynczy dzień)</label>
             <input id="h-date" type="date" />
           </div>
           <div class="field">
@@ -330,7 +378,37 @@
 
         <div class="actions">
           <button class="btn primary" id="h-add">Dodaj dzień</button>
-          <button class="btn danger" id="h-clear">Wyczyść wszystko</button>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="row">
+          <div class="field">
+            <label for="h-from">Zakres: od</label>
+            <input id="h-from" type="date" />
+          </div>
+          <div class="field">
+            <label for="h-to">Zakres: do</label>
+            <input id="h-to" type="date" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="h-range-type">Typ dnia (dla całego zakresu)</label>
+            <select id="h-range-type">
+              <option value="1">Full day</option>
+              <option value="0.5">Half day</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>&nbsp;</label>
+            <button class="btn primary" id="h-add-range">Dodaj zakres</button>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn danger" id="h-clear">Wyczyść Holidays</button>
         </div>
       </div>
 
@@ -352,7 +430,7 @@
       <div class="list" id="h-list"></div>
 
       <div class="footnote">
-        Liczba_dni = 25 − wziete_dni (sumowane: Full=1, Half=0.5). ID jest nadawane kolejno według dodania.
+        Liczba_dni = 25 − wziete_dni (sumowane: Full=1, Half=0.5). Zakres dodaje wszystkie dni inkluzywnie (od i do).
       </div>
     </section>
 
@@ -360,13 +438,13 @@
     <section id="panel-sickness" class="card hidden" role="tabpanel">
       <h2 class="section-title">Sickness</h2>
       <p class="section-subtitle">
-        Propozycja pól: data, Full/Half, „czy wymagane zwolnienie”, notatka (np. objawy/uwagi).
+        Pojedynczy dzień lub zakres (od–do). Propozycja pól: zwolnienie, info do przełożonego, notatka.
       </p>
 
       <div class="form-grid">
         <div class="row">
           <div class="field">
-            <label for="s-date">Data</label>
+            <label for="s-date">Data (pojedynczy dzień)</label>
             <input id="s-date" type="date" />
           </div>
           <div class="field">
@@ -399,7 +477,37 @@
 
         <div class="actions">
           <button class="btn primary" id="s-add">Dodaj dzień</button>
-          <button class="btn danger" id="s-clear">Wyczyść wszystko</button>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="row">
+          <div class="field">
+            <label for="s-from">Zakres: od</label>
+            <input id="s-from" type="date" />
+          </div>
+          <div class="field">
+            <label for="s-to">Zakres: do</label>
+            <input id="s-to" type="date" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="s-range-type">Typ dnia (dla całego zakresu)</label>
+            <select id="s-range-type">
+              <option value="1">Full day</option>
+              <option value="0.5">Half day</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>&nbsp;</label>
+            <button class="btn primary" id="s-add-range">Dodaj zakres</button>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn danger" id="s-clear">Wyczyść Sickness</button>
         </div>
       </div>
 
@@ -425,13 +533,13 @@
     <section id="panel-childcare" class="card hidden" role="tabpanel">
       <h2 class="section-title">Child care absence</h2>
       <p class="section-subtitle">
-        Propozycja pól: data, Full/Half, dziecko (imię), powód (np. choroba dziecka), notatka.
+        Pojedynczy dzień lub zakres (od–do). Propozycja pól: dziecko, powód, notatka.
       </p>
 
       <div class="form-grid">
         <div class="row">
           <div class="field">
-            <label for="c-date">Data</label>
+            <label for="c-date">Data (pojedynczy dzień)</label>
             <input id="c-date" type="date" />
           </div>
           <div class="field">
@@ -466,7 +574,37 @@
 
         <div class="actions">
           <button class="btn primary" id="c-add">Dodaj dzień</button>
-          <button class="btn danger" id="c-clear">Wyczyść wszystko</button>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="row">
+          <div class="field">
+            <label for="c-from">Zakres: od</label>
+            <input id="c-from" type="date" />
+          </div>
+          <div class="field">
+            <label for="c-to">Zakres: do</label>
+            <input id="c-to" type="date" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="c-range-type">Typ dnia (dla całego zakresu)</label>
+            <select id="c-range-type">
+              <option value="1">Full day</option>
+              <option value="0.5">Half day</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>&nbsp;</label>
+            <button class="btn primary" id="c-add-range">Dodaj zakres</button>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn danger" id="c-clear">Wyczyść Child care</button>
         </div>
       </div>
 
@@ -491,29 +629,27 @@
 
   <script>
     /**********************
-     *  Proste przechowywanie danych w localStorage
+     * Storage
      **********************/
     const STORAGE_KEY = "absence_tracker_v1";
+    const STATE_VERSION = 1;
 
     const state = loadState();
 
     function loadState(){
       try{
         const raw = localStorage.getItem(STORAGE_KEY);
-        if(!raw) return {
-          holidays: [],
-          sickness: [],
-          childcare: []
-        };
+        if(!raw) return { version: STATE_VERSION, holidays: [], sickness: [], childcare: [] };
         const parsed = JSON.parse(raw);
-        // minimalna walidacja
+
         return {
+          version: Number(parsed.version || STATE_VERSION),
           holidays: Array.isArray(parsed.holidays) ? parsed.holidays : [],
           sickness: Array.isArray(parsed.sickness) ? parsed.sickness : [],
           childcare: Array.isArray(parsed.childcare) ? parsed.childcare : []
         };
       }catch(e){
-        return { holidays: [], sickness: [], childcare: [] };
+        return { version: STATE_VERSION, holidays: [], sickness: [], childcare: [] };
       }
     }
 
@@ -522,16 +658,8 @@
     }
 
     function nextId(list){
-      // kolejne ID oparte o maks + 1, stabilne nawet po usuwaniu
       const max = list.reduce((m, x) => Math.max(m, Number(x.id || 0)), 0);
       return max + 1;
-    }
-
-    function fmtDate(iso){
-      if(!iso) return "—";
-      // iso: YYYY-MM-DD
-      const [y,m,d] = iso.split("-");
-      return `${d}.${m}.${y}`;
     }
 
     function safeNumber(x){
@@ -540,12 +668,54 @@
     }
 
     function sumDays(list){
-      // Full=1, Half=0.5
       return list.reduce((acc, item) => acc + safeNumber(item.dayValue), 0);
     }
 
+    function escapeHtml(str){
+      return String(str)
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    // Format daty + dzień tygodnia (EN jak w przykładzie)
+    function fmtDateWithWeekday(iso){
+      if(!iso) return "—";
+      const [y,m,d] = iso.split("-");
+      const dateObj = new Date(Number(y), Number(m) - 1, Number(d));
+      const weekday = new Intl.DateTimeFormat("en-GB", { weekday: "long" }).format(dateObj);
+      return `${d}.${m}.${y} • ${weekday}`;
+    }
+
+    function isoFromDate(d){
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,"0");
+      const day = String(d.getDate()).padStart(2,"0");
+      return `${y}-${m}-${day}`;
+    }
+
+    function enumerateDatesInclusive(fromIso, toIso){
+      const [fy,fm,fd] = fromIso.split("-").map(Number);
+      const [ty,tm,td] = toIso.split("-").map(Number);
+      const start = new Date(fy, fm-1, fd);
+      const end = new Date(ty, tm-1, td);
+
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return [];
+      if (end < start) return [];
+
+      const out = [];
+      let cur = new Date(start);
+      while(cur <= end){
+        out.push(isoFromDate(cur));
+        cur.setDate(cur.getDate() + 1);
+      }
+      return out;
+    }
+
     /**********************
-     *  TABY
+     * Tabs
      **********************/
     const tabs = document.querySelectorAll(".tab");
     const panels = {
@@ -554,9 +724,7 @@
       childcare: document.getElementById("panel-childcare")
     };
 
-    tabs.forEach(btn => {
-      btn.addEventListener("click", () => activateTab(btn.dataset.tab));
-    });
+    tabs.forEach(btn => btn.addEventListener("click", () => activateTab(btn.dataset.tab)));
 
     function activateTab(key){
       tabs.forEach(t => {
@@ -564,13 +732,156 @@
         t.classList.toggle("active", active);
         t.setAttribute("aria-selected", active ? "true" : "false");
       });
-      Object.keys(panels).forEach(k => {
-        panels[k].classList.toggle("hidden", k !== key);
-      });
+      Object.keys(panels).forEach(k => panels[k].classList.toggle("hidden", k !== key));
     }
 
     /**********************
-     *  HOLIDAYS
+     * Export / Import JSON
+     **********************/
+    const exportBtn = document.getElementById("export-json");
+    const importBtn = document.getElementById("import-json");
+    const resetAllBtn = document.getElementById("reset-all");
+    const importFile = document.getElementById("import-file");
+
+    exportBtn.addEventListener("click", () => {
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        ...state
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      const ts = new Date();
+      const stamp = `${ts.getFullYear()}-${String(ts.getMonth()+1).padStart(2,"0")}-${String(ts.getDate()).padStart(2,"0")}`;
+      a.href = url;
+      a.download = `absence-backup-${stamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    importBtn.addEventListener("click", () => importFile.click());
+
+    importFile.addEventListener("change", async () => {
+      const file = importFile.files && importFile.files[0];
+      importFile.value = "";
+      if(!file) return;
+
+      try{
+        const text = await file.text();
+        const parsed = JSON.parse(text);
+
+        // minimalna walidacja
+        const next = {
+          version: Number(parsed.version || STATE_VERSION),
+          holidays: Array.isArray(parsed.holidays) ? parsed.holidays : [],
+          sickness: Array.isArray(parsed.sickness) ? parsed.sickness : [],
+          childcare: Array.isArray(parsed.childcare) ? parsed.childcare : []
+        };
+
+        // sanity: każdy wpis powinien mieć date + id + dayValue (uzupełniamy jeśli braki)
+        next.holidays = normalizeList(next.holidays);
+        next.sickness = normalizeList(next.sickness);
+        next.childcare = normalizeList(next.childcare);
+
+        // nadpisz
+        state.version = next.version;
+        state.holidays = next.holidays;
+        state.sickness = next.sickness;
+        state.childcare = next.childcare;
+
+        saveState();
+        renderAll();
+        alert("Import OK. Dane zostały wczytane.");
+      }catch(e){
+        alert("Nie udało się zaimportować pliku. Sprawdź, czy to poprawny JSON z eksportu.");
+      }
+    });
+
+    resetAllBtn.addEventListener("click", () => {
+      if(!confirm("Na pewno usunąć WSZYSTKIE dane (Holidays, Sickness, Child care)?")) return;
+      state.holidays = [];
+      state.sickness = [];
+      state.childcare = [];
+      saveState();
+      renderAll();
+    });
+
+    function normalizeList(list){
+      // uzupełnia brakujące pola i wyrównuje typy
+      const out = [];
+      for(const item of list){
+        if(!item || typeof item !== "object") continue;
+        if(!item.date) continue;
+
+        const dayValue = safeNumber(item.dayValue);
+        out.push({
+          id: Number(item.id || 0) || 0,
+          date: String(item.date),
+          dayValue: dayValue || 1,
+          dayType: item.dayType || ((dayValue || 1) === 1 ? "Full day" : "Half day"),
+          note: item.note ? String(item.note) : "",
+          cert: item.cert ? String(item.cert) : "",
+          contact: item.contact ? String(item.contact) : "",
+          child: item.child ? String(item.child) : "",
+          reason: item.reason ? String(item.reason) : ""
+        });
+      }
+      // jeśli id są 0, nadajemy świeże (stabilnie)
+      let max = out.reduce((m,x)=>Math.max(m, Number(x.id||0)), 0);
+      for(const x of out){
+        if(!x.id || x.id <= 0){
+          max += 1;
+          x.id = max;
+        }
+      }
+      return out;
+    }
+
+    /**********************
+     * Generic add helpers
+     **********************/
+    function addSingle(listKey, entry){
+      const list = state[listKey];
+
+      if(list.some(x => x.date === entry.date)){
+        return { ok:false, msg:`Ten dzień (${entry.date}) już istnieje w tej zakładce.` };
+      }
+
+      list.push({
+        id: nextId(list),
+        ...entry
+      });
+      return { ok:true };
+    }
+
+    function addRange(listKey, fromIso, toIso, entryBuilder){
+      const dates = enumerateDatesInclusive(fromIso, toIso);
+      if(dates.length === 0){
+        return { ok:false, msg:"Niepoprawny zakres. Upewnij się, że 'od' <= 'do'." };
+      }
+
+      const list = state[listKey];
+      const existing = new Set(list.map(x => x.date));
+      const toAdd = dates.filter(d => !existing.has(d));
+
+      if(toAdd.length === 0){
+        return { ok:false, msg:"Wszystkie dni z tego zakresu już istnieją w tej zakładce." };
+      }
+
+      // dodajemy po kolei, każdy ma własne ID
+      for(const d of toAdd){
+        const entry = entryBuilder(d);
+        list.push({ id: nextId(list), ...entry });
+      }
+
+      return { ok:true, added: toAdd.length, skipped: dates.length - toAdd.length };
+    }
+
+    /**********************
+     * HOLIDAYS
      **********************/
     const HOLIDAYS_LIMIT = 25;
 
@@ -581,6 +892,11 @@
     const hClear = document.getElementById("h-clear");
     const hList = document.getElementById("h-list");
 
+    const hFrom = document.getElementById("h-from");
+    const hTo = document.getElementById("h-to");
+    const hRangeType = document.getElementById("h-range-type");
+    const hAddRange = document.getElementById("h-add-range");
+
     const hLimitEl = document.getElementById("h-limit");
     const hTakenEl = document.getElementById("h-taken");
     const hLeftEl = document.getElementById("h-left");
@@ -589,43 +905,79 @@
 
     hAdd.addEventListener("click", () => {
       const date = hDate.value;
-      const dayValue = Number(hType.value); // 1 lub 0.5
+      const dayValue = Number(hType.value);
       const note = (hNote.value || "").trim();
 
-      if(!date){
-        alert("Wybierz datę.");
-        return;
-      }
-
-      // blokada duplikatu tej samej daty (opcjonalna, ale praktyczna)
-      const exists = state.holidays.some(x => x.date === date);
-      if(exists){
-        alert("Ten dzień już istnieje w Holidays. Usuń go lub wybierz inną datę.");
-        return;
-      }
+      if(!date){ alert("Wybierz datę."); return; }
 
       const taken = sumDays(state.holidays);
-      const leftAfter = HOLIDAYS_LIMIT - (taken + dayValue);
-      if(leftAfter < 0){
-        alert("Przekraczasz limit Holidays (25 dni). Zmień Half/Full albo usuń inne wpisy.");
+      if (HOLIDAYS_LIMIT - (taken + dayValue) < 0){
+        alert("Przekraczasz limit Holidays (25 dni).");
         return;
       }
 
-      state.holidays.push({
-        id: nextId(state.holidays),
+      const res = addSingle("holidays", {
         date,
         dayValue,
         dayType: dayValue === 1 ? "Full day" : "Half day",
         note
       });
 
+      if(!res.ok){ alert(res.msg); return; }
+
       saveState();
       renderAll();
 
-      // UX: zostaw datę pustą, notatkę czyść
       hDate.value = "";
       hNote.value = "";
       hType.value = "1";
+    });
+
+    hAddRange.addEventListener("click", () => {
+      const fromIso = hFrom.value;
+      const toIso = hTo.value;
+      const dayValue = Number(hRangeType.value);
+      const note = (hNote.value || "").trim(); // ta sama notatka dla całego zakresu
+
+      if(!fromIso || !toIso){
+        alert("Uzupełnij daty 'od' i 'do'.");
+        return;
+      }
+
+      const dates = enumerateDatesInclusive(fromIso, toIso);
+      if(dates.length === 0){
+        alert("Niepoprawny zakres (od <= do).");
+        return;
+      }
+
+      // limit check z uwzględnieniem pominiętych duplikatów
+      const existing = new Set(state.holidays.map(x => x.date));
+      const toAddCount = dates.filter(d => !existing.has(d)).length;
+
+      const taken = sumDays(state.holidays);
+      const wouldAdd = toAddCount * dayValue;
+      if(HOLIDAYS_LIMIT - (taken + wouldAdd) < 0){
+        alert("Zakres przekroczy limit Holidays (25 dni). Usuń część dni albo użyj Half day.");
+        return;
+      }
+
+      const res = addRange("holidays", fromIso, toIso, (d) => ({
+        date: d,
+        dayValue,
+        dayType: dayValue === 1 ? "Full day" : "Half day",
+        note
+      }));
+
+      if(!res.ok){ alert(res.msg); return; }
+
+      saveState();
+      renderAll();
+
+      alert(`Dodano: ${res.added} dni. Pominięto (duplikaty): ${res.skipped}.`);
+
+      hFrom.value = "";
+      hTo.value = "";
+      hRangeType.value = "1";
     });
 
     hClear.addEventListener("click", () => {
@@ -644,12 +996,11 @@
       hLeftEl.classList.toggle("bad", left <= 2);
       hLeftEl.classList.toggle("good", left > 2);
 
-      // sortuj po dacie rosnąco
       const list = [...state.holidays].sort((a,b) => (a.date || "").localeCompare(b.date || ""));
-
       hList.innerHTML = "";
+
       if(list.length === 0){
-        hList.innerHTML = `<div class="item"><div class="item-meta">Brak wpisów. Dodaj pierwszy dzień z kalendarza.</div></div>`;
+        hList.innerHTML = `<div class="item"><div class="item-meta">Brak wpisów. Dodaj dzień lub zakres.</div></div>`;
         return;
       }
 
@@ -659,7 +1010,7 @@
 
         el.innerHTML = `
           <div class="item-top">
-            <div class="item-title">ID ${item.id} • ${fmtDate(item.date)}</div>
+            <div class="item-title">ID ${item.id} • ${fmtDateWithWeekday(item.date)}</div>
             <div class="item-badge">${item.dayType}</div>
           </div>
           <div class="item-meta">
@@ -682,7 +1033,7 @@
     }
 
     /**********************
-     *  SICKNESS
+     * SICKNESS
      **********************/
     const sDate = document.getElementById("s-date");
     const sType = document.getElementById("s-type");
@@ -693,6 +1044,11 @@
     const sClear = document.getElementById("s-clear");
     const sList = document.getElementById("s-list");
 
+    const sFrom = document.getElementById("s-from");
+    const sTo = document.getElementById("s-to");
+    const sRangeType = document.getElementById("s-range-type");
+    const sAddRange = document.getElementById("s-add-range");
+
     const sCountEl = document.getElementById("s-count");
     const sTotalEl = document.getElementById("s-total");
     const sLastEl = document.getElementById("s-last");
@@ -700,19 +1056,10 @@
     sAdd.addEventListener("click", () => {
       const date = sDate.value;
       const dayValue = Number(sType.value);
-      if(!date){
-        alert("Wybierz datę.");
-        return;
-      }
 
-      // pozwalamy na duplikaty w Sickness? Zwykle nie — blokujemy dla porządku:
-      if(state.sickness.some(x => x.date === date)){
-        alert("Ten dzień już istnieje w Sickness.");
-        return;
-      }
+      if(!date){ alert("Wybierz datę."); return; }
 
-      state.sickness.push({
-        id: nextId(state.sickness),
+      const res = addSingle("sickness", {
         date,
         dayValue,
         dayType: dayValue === 1 ? "Full day" : "Half day",
@@ -720,6 +1067,8 @@
         contact: (sContact.value || "").trim(),
         note: (sNote.value || "").trim()
       });
+
+      if(!res.ok){ alert(res.msg); return; }
 
       saveState();
       renderAll();
@@ -729,6 +1078,38 @@
       sCert.value = "Nie";
       sContact.value = "";
       sNote.value = "";
+    });
+
+    sAddRange.addEventListener("click", () => {
+      const fromIso = sFrom.value;
+      const toIso = sTo.value;
+      const dayValue = Number(sRangeType.value);
+
+      if(!fromIso || !toIso){ alert("Uzupełnij daty 'od' i 'do'."); return; }
+
+      const cert = sCert.value;
+      const contact = (sContact.value || "").trim();
+      const note = (sNote.value || "").trim();
+
+      const res = addRange("sickness", fromIso, toIso, (d) => ({
+        date: d,
+        dayValue,
+        dayType: dayValue === 1 ? "Full day" : "Half day",
+        cert,
+        contact,
+        note
+      }));
+
+      if(!res.ok){ alert(res.msg); return; }
+
+      saveState();
+      renderAll();
+
+      alert(`Dodano: ${res.added} dni. Pominięto (duplikaty): ${res.skipped}.`);
+
+      sFrom.value = "";
+      sTo.value = "";
+      sRangeType.value = "1";
     });
 
     sClear.addEventListener("click", () => {
@@ -744,11 +1125,11 @@
 
       sCountEl.textContent = String(list.length);
       sTotalEl.textContent = String(total % 1 === 0 ? total.toFixed(0) : total.toFixed(1));
-      sLastEl.textContent = list.length ? fmtDate(list[list.length - 1].date) : "—";
+      sLastEl.textContent = list.length ? fmtDateWithWeekday(list[list.length - 1].date) : "—";
 
       sList.innerHTML = "";
       if(list.length === 0){
-        sList.innerHTML = `<div class="item"><div class="item-meta">Brak wpisów. Dodaj dzień chorobowy.</div></div>`;
+        sList.innerHTML = `<div class="item"><div class="item-meta">Brak wpisów. Dodaj dzień lub zakres.</div></div>`;
         return;
       }
 
@@ -757,7 +1138,7 @@
         el.className = "item";
         el.innerHTML = `
           <div class="item-top">
-            <div class="item-title">ID ${item.id} • ${fmtDate(item.date)}</div>
+            <div class="item-title">ID ${item.id} • ${fmtDateWithWeekday(item.date)}</div>
             <div class="item-badge">${item.dayType}</div>
           </div>
           <div class="item-meta">
@@ -782,7 +1163,7 @@
     }
 
     /**********************
-     *  CHILD CARE
+     * CHILD CARE
      **********************/
     const cDate = document.getElementById("c-date");
     const cType = document.getElementById("c-type");
@@ -793,6 +1174,11 @@
     const cClear = document.getElementById("c-clear");
     const cList = document.getElementById("c-list");
 
+    const cFrom = document.getElementById("c-from");
+    const cTo = document.getElementById("c-to");
+    const cRangeType = document.getElementById("c-range-type");
+    const cAddRange = document.getElementById("c-add-range");
+
     const cCountEl = document.getElementById("c-count");
     const cTotalEl = document.getElementById("c-total");
     const cLastEl = document.getElementById("c-last");
@@ -800,18 +1186,10 @@
     cAdd.addEventListener("click", () => {
       const date = cDate.value;
       const dayValue = Number(cType.value);
-      if(!date){
-        alert("Wybierz datę.");
-        return;
-      }
 
-      if(state.childcare.some(x => x.date === date)){
-        alert("Ten dzień już istnieje w Child care absence.");
-        return;
-      }
+      if(!date){ alert("Wybierz datę."); return; }
 
-      state.childcare.push({
-        id: nextId(state.childcare),
+      const res = addSingle("childcare", {
         date,
         dayValue,
         dayType: dayValue === 1 ? "Full day" : "Half day",
@@ -819,6 +1197,8 @@
         reason: cReason.value,
         note: (cNote.value || "").trim()
       });
+
+      if(!res.ok){ alert(res.msg); return; }
 
       saveState();
       renderAll();
@@ -830,8 +1210,40 @@
       cNote.value = "";
     });
 
+    cAddRange.addEventListener("click", () => {
+      const fromIso = cFrom.value;
+      const toIso = cTo.value;
+      const dayValue = Number(cRangeType.value);
+
+      if(!fromIso || !toIso){ alert("Uzupełnij daty 'od' i 'do'."); return; }
+
+      const child = (cChild.value || "").trim();
+      const reason = cReason.value;
+      const note = (cNote.value || "").trim();
+
+      const res = addRange("childcare", fromIso, toIso, (d) => ({
+        date: d,
+        dayValue,
+        dayType: dayValue === 1 ? "Full day" : "Half day",
+        child,
+        reason,
+        note
+      }));
+
+      if(!res.ok){ alert(res.msg); return; }
+
+      saveState();
+      renderAll();
+
+      alert(`Dodano: ${res.added} dni. Pominięto (duplikaty): ${res.skipped}.`);
+
+      cFrom.value = "";
+      cTo.value = "";
+      cRangeType.value = "1";
+    });
+
     cClear.addEventListener("click", () => {
-      if(!confirm("Na pewno wyczyścić wszystkie wpisy Child care absence?")) return;
+      if(!confirm("Na pewno wyczyścić wszystkie wpisy Child care?")) return;
       state.childcare = [];
       saveState();
       renderAll();
@@ -843,11 +1255,11 @@
 
       cCountEl.textContent = String(list.length);
       cTotalEl.textContent = String(total % 1 === 0 ? total.toFixed(0) : total.toFixed(1));
-      cLastEl.textContent = list.length ? fmtDate(list[list.length - 1].date) : "—";
+      cLastEl.textContent = list.length ? fmtDateWithWeekday(list[list.length - 1].date) : "—";
 
       cList.innerHTML = "";
       if(list.length === 0){
-        cList.innerHTML = `<div class="item"><div class="item-meta">Brak wpisów. Dodaj nieobecność z tytułu opieki.</div></div>`;
+        cList.innerHTML = `<div class="item"><div class="item-meta">Brak wpisów. Dodaj dzień lub zakres.</div></div>`;
         return;
       }
 
@@ -856,7 +1268,7 @@
         el.className = "item";
         el.innerHTML = `
           <div class="item-top">
-            <div class="item-title">ID ${item.id} • ${fmtDate(item.date)}</div>
+            <div class="item-title">ID ${item.id} • ${fmtDateWithWeekday(item.date)}</div>
             <div class="item-badge">${item.dayType}</div>
           </div>
           <div class="item-meta">
@@ -880,37 +1292,25 @@
       });
     }
 
-    /**********************
-     *  Render całości + drobne utils
-     **********************/
     function renderAll(){
       renderHolidays();
       renderSickness();
       renderChildcare();
     }
 
-    function escapeHtml(str){
-      return String(str)
-        .replaceAll("&","&amp;")
-        .replaceAll("<","&lt;")
-        .replaceAll(">","&gt;")
-        .replaceAll('"',"&quot;")
-        .replaceAll("'","&#039;");
-    }
-
-    // ustaw domyślną datę na dziś (dla wygody)
     (function init(){
-      const today = new Date();
-      const yyyy = today.getFullYear();
-      const mm = String(today.getMonth()+1).padStart(2,"0");
-      const dd = String(today.getDate()).padStart(2,"0");
-      const iso = `${yyyy}-${mm}-${dd}`;
-
-      // Nie wymuszamy, tylko podpowiadamy (możesz odkomentować, jeśli chcesz auto-uzupełnianie):
-      // hDate.value = iso; sDate.value = iso; cDate.value = iso;
-
       renderAll();
     })();
+
+    /**********************
+     * PWA: Service Worker
+     * SW działa tylko na HTTPS lub localhost.
+     **********************/
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+      });
+    }
   </script>
 </body>
 </html>

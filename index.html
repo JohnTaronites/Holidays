@@ -13,7 +13,6 @@
   <meta name="apple-mobile-web-app-title" content="Seb’s Absence">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
-  <!-- Styles -->
   <link rel="stylesheet" href="styles.css">
 </head>
 
@@ -26,7 +25,9 @@
       <div class="tabs" role="tablist" aria-label="Menu">
         <button class="tab active" data-tab="holidays" role="tab" aria-selected="true">Holidays</button>
         <button class="tab" data-tab="sickness" role="tab" aria-selected="false">Sickness</button>
-        <button class="tab" data-tab="childcare" role="tab" aria-selected="false">Child care absence</button>
+        <button class="tab" data-tab="childcare" role="tab" aria-selected="false">Child care</button>
+        <button class="tab" data-tab="overtimes" role="tab" aria-selected="false">Overtimes</button>
+        <button class="tab" data-tab="hours" role="tab" aria-selected="false">Hours</button>
       </div>
 
       <!-- Export/Import -->
@@ -105,17 +106,17 @@
       </div>
 
       <div class="summary">
-       <div class="pill pill-edit">
-        <div class="pill-left">
-          <strong>Limit roczny</strong>
-        <div class="pill-sub">Możesz zmienić (np. 26)</div>
+        <!-- editable limit -->
+        <div class="pill pill-edit">
+          <div class="pill-left">
+            <strong>Limit roczny</strong>
+            <div class="pill-sub">Możesz zmienić (np. 26)</div>
+          </div>
+          <div class="pill-right">
+            <input id="h-limit-input" class="pill-input" type="number" min="0" step="0.5" inputmode="decimal" />
+            <span class="accent pill-unit">dni</span>
+          </div>
         </div>
-
-  <div class="pill-right">
-    <input id="h-limit-input" class="pill-input" type="number" min="0" step="0.5" inputmode="decimal" />
-    <span class="accent pill-unit">dni</span>
-  </div>
-</div>
 
         <div class="pill">
           <strong>Wzięte dni</strong>
@@ -227,7 +228,7 @@
 
     <!-- CHILD CARE -->
     <section id="panel-childcare" class="card hidden" role="tabpanel">
-      <h2 class="section-title">Child care absence</h2>
+      <h2 class="section-title">Child care</h2>
       <p class="section-subtitle">
         Pojedynczy dzień lub zakres (od–do). Pola: dziecko, powód, notatka.
       </p>
@@ -322,10 +323,199 @@
       <div class="list" id="c-list"></div>
     </section>
 
+    <!-- OVERTIMES -->
+    <section id="panel-overtimes" class="card hidden" role="tabpanel">
+      <h2 class="section-title">Overtimes</h2>
+      <p class="section-subtitle">
+        Wybierz dzień lub zakres. Wpisz czas (hh/mm) oraz mnożnik (np. 1.5 lub 2). Tydzień liczony: niedziela–sobota.
+      </p>
+
+      <div class="form-grid">
+        <div class="row">
+          <div class="field">
+            <label for="ot-date">Data (pojedynczy dzień)</label>
+            <input id="ot-date" type="date" />
+          </div>
+          <div class="field">
+            <label for="ot-mult">Mnożnik</label>
+            <input id="ot-mult" type="number" min="1" step="0.1" inputmode="decimal" value="1.5" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="ot-hh">Godziny</label>
+            <input id="ot-hh" type="number" min="0" step="1" inputmode="numeric" value="0" />
+          </div>
+          <div class="field">
+            <label for="ot-mm">Minuty</label>
+            <input id="ot-mm" type="number" min="0" max="59" step="1" inputmode="numeric" value="0" />
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn primary" id="ot-add">Dodaj dzień</button>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="row">
+          <div class="field">
+            <label for="ot-from">Zakres: od</label>
+            <input id="ot-from" type="date" />
+          </div>
+          <div class="field">
+            <label for="ot-to">Zakres: do</label>
+            <input id="ot-to" type="date" />
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn primary" id="ot-add-range">Dodaj zakres</button>
+          <button class="btn danger" id="ot-clear">Wyczyść Overtimes</button>
+        </div>
+      </div>
+
+      <div class="summary">
+        <div class="pill">
+          <strong>Tydzień (teraz)</strong>
+          <span class="accent" id="ot-week">0h</span>
+        </div>
+        <div class="pill">
+          <strong>Miesiąc (teraz)</strong>
+          <span class="accent" id="ot-month">0h</span>
+        </div>
+        <div class="pill">
+          <strong>Rok (teraz)</strong>
+          <span class="accent" id="ot-year">0h</span>
+        </div>
+      </div>
+
+      <div class="list" id="ot-list"></div>
+    </section>
+
+    <!-- HOURS -->
+    <section id="panel-hours" class="card hidden" role="tabpanel">
+      <h2 class="section-title">Hours</h2>
+      <p class="section-subtitle">
+        Wpisuj regularne godziny pracy (dzień lub zakres). Kalkulator liczy zarobek z uwzględnieniem nadgodzin (Overtimes) i mnożników.
+      </p>
+
+      <div class="form-grid">
+        <div class="row">
+          <div class="field">
+            <label for="hr-date">Data (pojedynczy dzień)</label>
+            <input id="hr-date" type="date" />
+          </div>
+          <div class="field">
+            <label for="hr-note">Notatka (opcjonalnie)</label>
+            <input id="hr-note" type="text" placeholder="np. projekt / lokalizacja" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="hr-hh">Godziny</label>
+            <input id="hr-hh" type="number" min="0" step="1" inputmode="numeric" value="8" />
+          </div>
+          <div class="field">
+            <label for="hr-mm">Minuty</label>
+            <input id="hr-mm" type="number" min="0" max="59" step="1" inputmode="numeric" value="0" />
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn primary" id="hr-add">Dodaj dzień</button>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="row">
+          <div class="field">
+            <label for="hr-from">Zakres: od</label>
+            <input id="hr-from" type="date" />
+          </div>
+          <div class="field">
+            <label for="hr-to">Zakres: do</label>
+            <input id="hr-to" type="date" />
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn primary" id="hr-add-range">Dodaj zakres</button>
+          <button class="btn danger" id="hr-clear">Wyczyść Hours</button>
+        </div>
+      </div>
+
+      <div class="summary">
+        <div class="pill">
+          <strong>Tydzień (teraz)</strong>
+          <span class="accent" id="hr-week">0h</span>
+        </div>
+        <div class="pill">
+          <strong>Miesiąc (teraz)</strong>
+          <span class="accent" id="hr-month">0h</span>
+        </div>
+        <div class="pill">
+          <strong>Rok (teraz)</strong>
+          <span class="accent" id="hr-year">0h</span>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <h3 class="section-mini">Kalkulator</h3>
+      <div class="form-grid">
+        <div class="row">
+          <div class="field">
+            <label for="pay-rate">Stawka za godzinę</label>
+            <input id="pay-rate" type="number" min="0" step="0.01" inputmode="decimal" placeholder="np. 50" />
+          </div>
+          <div class="field">
+            <label for="pay-cur">Waluta</label>
+            <select id="pay-cur">
+              <option value="PLN">PLN</option>
+              <option value="EUR">EUR</option>
+              <option value="GBP">GBP</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="summary">
+          <div class="pill">
+            <strong>Zarobek tydzień</strong>
+            <span class="accent" id="pay-week">0</span>
+          </div>
+          <div class="pill">
+            <strong>Zarobek miesiąc</strong>
+            <span class="accent" id="pay-month">0</span>
+          </div>
+          <div class="pill">
+            <strong>Zarobek rok</strong>
+            <span class="accent" id="pay-year">0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <h3 class="section-mini">Tygodnie</h3>
+      <div class="list" id="hr-weekly-list"></div>
+
+      <details class="details">
+        <summary>Lista wpisów dziennych (Hours)</summary>
+        <div class="list" id="hr-list"></div>
+      </details>
+
+      <details class="details">
+        <summary>Lista wpisów dziennych (Overtimes)</summary>
+        <div class="list" id="ot-list-mini"></div>
+      </details>
+    </section>
+
     <div class="footer">seb ai 2026</div>
   </div>
 
-  <!-- App -->
   <script src="app.js" defer></script>
 </body>
 </html>

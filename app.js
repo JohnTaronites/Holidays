@@ -8,6 +8,10 @@
   const DEFAULT_RATE = 0;
   const DEFAULT_CURRENCY = "PLN";
 
+  // Paid holiday minutes (per your spec)
+  const HOLIDAY_FULL_MIN = 450; // 7h30m
+  const HOLIDAY_HALF_MIN = 210; // 3h30m
+
   const settings = loadSettings();
   const state = loadState();
 
@@ -196,6 +200,27 @@
   }
 
   /* -----------------------------
+   * Holidays -> Paid minutes helpers
+   * ----------------------------- */
+  function holidayPaidMinutesForEntry(entry) {
+    // entry.dayValue is expected 1 or 0.5 in this app
+    const dv = safeNumber(entry.dayValue);
+    if (dv === 1) return HOLIDAY_FULL_MIN;
+    if (dv === 0.5) return HOLIDAY_HALF_MIN;
+
+    // fallback (if someone imports odd values):
+    // treat >=1 as full days, and fractions as proportion of full day (still not matching your 3h30 rule),
+    // so we clamp to spec for 0.5 and 1; otherwise use full-day proportion.
+    return Math.round(dv * HOLIDAY_FULL_MIN);
+  }
+
+  function sumHolidayMinutesInPeriod(fromDate, toDate) {
+    return state.holidays
+      .filter(x => inRange(x.date, fromDate, toDate))
+      .reduce((acc, x) => acc + holidayPaidMinutesForEntry(x), 0);
+  }
+
+  /* -----------------------------
    * Tabs
    * ----------------------------- */
   const tabs = document.querySelectorAll(".tab");
@@ -270,9 +295,9 @@
       }
 
       state.version = Number(parsed.version || STATE_VERSION);
-      state.holidays = normalizeAbsenceList(Array.isArray(parsed.holidays) ? parsed.holidays : [], "holiday");
-      state.sickness = normalizeAbsenceList(Array.isArray(parsed.sickness) ? parsed.sickness : [], "sickness");
-      state.childcare = normalizeAbsenceList(Array.isArray(parsed.childcare) ? parsed.childcare : [], "childcare");
+      state.holidays = normalizeAbsenceList(Array.isArray(parsed.holidays) ? parsed.holidays : []);
+      state.sickness = normalizeAbsenceList(Array.isArray(parsed.sickness) ? parsed.sickness : []);
+      state.childcare = normalizeAbsenceList(Array.isArray(parsed.childcare) ? parsed.childcare : []);
 
       state.overtimes = normalizeTimeList(Array.isArray(parsed.overtimes) ? parsed.overtimes : [], "overtime");
       state.hours = normalizeTimeList(Array.isArray(parsed.hours) ? parsed.hours : [], "hours");
@@ -419,6 +444,7 @@
       settings.holidaysLimit = normalized;
       saveSettings();
       renderHolidays();
+      renderHours(); // IMPORTANT: holidays affect paid hours
     });
   }
 
@@ -518,6 +544,8 @@
     list.forEach(item => {
       const el = document.createElement("div");
       el.className = "item";
+      const paidMin = holidayPaidMinutesForEntry(item);
+
       el.innerHTML = `
         <div class="item-top">
           <div class="item-title">ID ${item.id} • ${fmtDateWithWeekday(item.date)}</div>
@@ -525,6 +553,7 @@
         </div>
         <div class="item-meta">
           <div><strong>Dni:</strong> ${item.dayValue}</div>
+          <div><strong>Paid hours:</strong> ${fmtHoursMinutesFromMinutes(paidMin)}</div>
           ${item.note ? `<div><strong>Notatka:</strong> ${escapeHtml(item.note)}</div>` : ""}
         </div>
         <div class="item-actions">
@@ -875,7 +904,6 @@
       });
     }
 
-    // Mini list (for HOURS tab)
     if (otListMini) {
       otListMini.innerHTML = "";
       if (list.length === 0) {
@@ -896,7 +924,6 @@
       }
     }
 
-    // Current period totals
     const now = new Date();
     const wFrom = startOfWeekSunday(now);
     const wTo = endOfWeekSaturday(now);
@@ -934,14 +961,12 @@
   const hrWeeklyList = document.getElementById("hr-weekly-list");
   const hrList = document.getElementById("hr-list");
 
-  // Pay calculator inputs
   const payRate = document.getElementById("pay-rate");
   const payCur = document.getElementById("pay-cur");
   const payWeek = document.getElementById("pay-week");
   const payMonth = document.getElementById("pay-month");
   const payYear = document.getElementById("pay-year");
 
-  // Init pay settings
   if (payRate) {
     payRate.value = String(settings.hourlyRate || "");
     payRate.addEventListener("change", () => {
@@ -1041,7 +1066,6 @@
   }
 
   function renderHours() {
-    // Sync settings fields
     if (payRate) payRate.value = String(settings.hourlyRate || "");
     if (payCur) payCur.value = settings.currency;
 
@@ -1061,12 +1085,17 @@
     const otMonthMin = sumOvertimeMinutesInPeriod(mFrom, mTo);
     const otYearMin = sumOvertimeMinutesInPeriod(yFrom, yTo);
 
-    // For display totals: regular + overtime
-    hrWeekEl.textContent = fmtHoursMinutesFromMinutes(regWeekMin + otWeekMin);
-    hrMonthEl.textContent = fmtHoursMinutesFromMinutes(regMonthMin + otMonthMin);
-    hrYearEl.textContent = fmtHoursMinutesFromMinutes(regYearMin + otYearMin);
+    // Holidays paid minutes
+    const holWeekMin = sumHolidayMinutesInPeriod(wFrom, wTo);
+    const holMonthMin = sumHolidayMinutesInPeriod(mFrom, mTo);
+    const holYearMin = sumHolidayMinutesInPeriod(yFrom, yTo);
 
-    // Calculator (current periods)
+    // Display totals: regular + holidays (paid) + overtime
+    hrWeekEl.textContent = fmtHoursMinutesFromMinutes(regWeekMin + holWeekMin + otWeekMin);
+    hrMonthEl.textContent = fmtHoursMinutesFromMinutes(regMonthMin + holMonthMin + otMonthMin);
+    hrYearEl.textContent = fmtHoursMinutesFromMinutes(regYearMin + holYearMin + otYearMin);
+
+    // Calculator
     const rate = safeNumber(settings.hourlyRate);
     const cur = settings.currency;
 
@@ -1074,20 +1103,21 @@
     const regMonthPay = (regMonthMin / 60) * rate;
     const regYearPay = (regYearMin / 60) * rate;
 
+    const holWeekPay = (holWeekMin / 60) * rate;
+    const holMonthPay = (holMonthMin / 60) * rate;
+    const holYearPay = (holYearMin / 60) * rate;
+
     const otWeekPay = sumOvertimeEarningsInPeriod(wFrom, wTo, rate);
     const otMonthPay = sumOvertimeEarningsInPeriod(mFrom, mTo, rate);
     const otYearPay = sumOvertimeEarningsInPeriod(yFrom, yTo, rate);
 
     const fmtMoney = (v) => `${(Math.round(v * 100) / 100).toFixed(2)} ${cur}`;
 
-    payWeek.textContent = fmtMoney(regWeekPay + otWeekPay);
-    payMonth.textContent = fmtMoney(regMonthPay + otMonthPay);
-    payYear.textContent = fmtMoney(regYearPay + otYearPay);
+    payWeek.textContent = fmtMoney(regWeekPay + holWeekPay + otWeekPay);
+    payMonth.textContent = fmtMoney(regMonthPay + holMonthPay + otMonthPay);
+    payYear.textContent = fmtMoney(regYearPay + holYearPay + otYearPay);
 
-    // Weekly list (aggregate from both regular hours and overtimes)
     renderWeeklyOverview();
-
-    // Daily Hours list (in details)
     renderHoursDailyList();
   }
 
@@ -1098,7 +1128,7 @@
   }
 
   function renderWeeklyOverview() {
-    const map = new Map(); // startISO -> {start,end, regMin, otMin, otPay, regPay}
+    const map = new Map(); // startISO -> totals
     const rate = safeNumber(settings.hourlyRate);
 
     function ensureWeek(startIso) {
@@ -1106,13 +1136,16 @@
       const start = parseIsoToLocalDate(startIso);
       const end = new Date(start);
       end.setDate(end.getDate() + 6);
+
       const obj = {
         startIso,
         endIso: isoFromDate(end),
         regMin: 0,
+        holMin: 0,
         otMin: 0,
         otPay: 0,
-        regPay: 0
+        regPay: 0,
+        holPay: 0
       };
       map.set(startIso, obj);
       return obj;
@@ -1125,11 +1158,19 @@
       w.regMin += safeNumber(it.minutes);
     }
 
+    // Holidays (paid)
+    for (const it of state.holidays) {
+      const wk = weekKeyForDateIso(it.date);
+      const w = ensureWeek(wk);
+      w.holMin += holidayPaidMinutesForEntry(it);
+    }
+
     // Overtimes
     for (const it of state.overtimes) {
       const wk = weekKeyForDateIso(it.date);
       const w = ensureWeek(wk);
       w.otMin += safeNumber(it.minutes);
+
       const hours = safeNumber(it.minutes) / 60;
       const mult = safeNumber(it.multiplier) >= 1 ? safeNumber(it.multiplier) : 1;
       w.otPay += hours * rate * mult;
@@ -1138,6 +1179,7 @@
     // derive pay
     for (const w of map.values()) {
       w.regPay = (w.regMin / 60) * rate;
+      w.holPay = (w.holMin / 60) * rate;
     }
 
     const cur = settings.currency;
@@ -1147,14 +1189,13 @@
 
     hrWeeklyList.innerHTML = "";
     if (weeks.length === 0) {
-      hrWeeklyList.innerHTML = `<div class="item"><div class="item-meta">Brak wpisów. Dodaj godziny w Hours lub nadgodziny w Overtimes.</div></div>`;
+      hrWeeklyList.innerHTML = `<div class="item"><div class="item-meta">Brak wpisów. Dodaj godziny w Hours, Holidays lub nadgodziny w Overtimes.</div></div>`;
       return;
     }
 
-    // show last 16 weeks
     weeks.slice(0, 16).forEach(w => {
-      const totalMin = w.regMin + w.otMin;
-      const totalPay = w.regPay + w.otPay;
+      const totalMin = w.regMin + w.holMin + w.otMin;
+      const totalPay = w.regPay + w.holPay + w.otPay;
 
       const el = document.createElement("div");
       el.className = "item";
@@ -1165,6 +1206,7 @@
         </div>
         <div class="item-meta">
           <div><strong>Regular:</strong> ${fmtHoursMinutesFromMinutes(w.regMin)}</div>
+          <div><strong>Holidays (paid):</strong> ${fmtHoursMinutesFromMinutes(w.holMin)}</div>
           <div><strong>Overtime:</strong> ${fmtHoursMinutesFromMinutes(w.otMin)}</div>
           <div><strong>Zarobek:</strong> ${fmtMoney(totalPay)}</div>
         </div>

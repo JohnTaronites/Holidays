@@ -56,9 +56,10 @@ header{
   text-align: center;
 }
 
+/* Tabs: auto-wrap for 5 items */
 .tabs{
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 10px;
   margin: 14px 0 10px;
 }
@@ -101,6 +102,15 @@ header{
   letter-spacing: 0.7px;
   font-weight: 900;
   margin: 0 0 4px;
+}
+
+.section-mini{
+  margin: 2px 0 10px;
+  font-size: 14px;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  font-weight: 900;
+  color: var(--muted);
 }
 
 .section-subtitle{
@@ -178,7 +188,7 @@ textarea{
 
 .divider{
   border-top: 1px solid var(--line);
-  margin: 10px 0 6px;
+  margin: 12px 0 10px;
   opacity: 0.9;
 }
 
@@ -262,6 +272,36 @@ textarea{
 .pill .bad{ color: var(--danger); }
 .pill .accent{ color: var(--accent); }
 
+/* Editable pill */
+.pill-edit{ align-items: center; }
+.pill-left{ display: grid; gap: 4px; min-width: 0; }
+.pill-sub{
+  color: var(--muted2);
+  font-size: 11px;
+  line-height: 1.2;
+  text-transform: none;
+  letter-spacing: 0.2px;
+}
+.pill-right{ display: flex; align-items: center; gap: 8px; }
+.pill-input{
+  width: 86px;
+  max-width: 100%;
+  min-width: 0;
+  padding: 10px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.06);
+  color: var(--txt);
+  font-weight: 900;
+  text-align: right;
+}
+.pill-unit{
+  font-weight: 950;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
 /* Lists */
 .list{
   margin-top: 14px;
@@ -334,6 +374,23 @@ textarea{
 
 .hidden{ display: none !important; }
 
+/* Details blocks */
+.details{
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.04);
+  padding: 10px 12px;
+}
+.details summary{
+  cursor: pointer;
+  font-weight: 900;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  font-size: 12px;
+  color: var(--muted);
+}
+
 /* Footer */
 .footer{
   margin-top: 16px;
@@ -355,49 +412,3 @@ textarea{
   .tabs{ gap: 12px; }
   .tab{ font-size: 14px; padding: 12px 12px; }
 }
-
-/* Editable pill (Holiday limit) */
-.pill-edit{
-  align-items: center;
-}
-
-.pill-left{
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-
-.pill-sub{
-  color: var(--muted2);
-  font-size: 11px;
-  line-height: 1.2;
-  text-transform: none;
-  letter-spacing: 0.2px;
-}
-
-.pill-right{
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.pill-input{
-  width: 86px;
-  max-width: 100%;
-  min-width: 0;
-  padding: 10px 10px;
-  border-radius: 12px;
-  border: 1px solid var(--line);
-  background: rgba(255,255,255,0.06);
-  color: var(--txt);
-  font-weight: 900;
-  text-align: right;
-}
-
-.pill-unit{
-  font-weight: 950;
-  font-size: 13px;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-}
-
